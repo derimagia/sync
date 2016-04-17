@@ -1,0 +1,9 @@
+{
+  "name": "derimagia/terminus-sync",
+  "description": "Sync - A Terminus plugin for syncing pantheon to a local dev instance",
+  "homepage": "https://github.com/derimagia/terminus-sync",
+  "license": "MIT",
+  "require": {
+    "php": ">=5.4"
+  },
+}
