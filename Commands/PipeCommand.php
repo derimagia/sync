@@ -75,46 +75,49 @@ class PipeCommand extends CommandWithSSH {
     $environment->wake();
 
     $alias = reset($aliases);
-    $remote_host = FALSE;
-
-    if (isset($alias['remote-host'])) {
-      $remote_host = TRUE;
-    }
+//    $remote_host = FALSE;
+//
+//    if (isset($alias['remote-host'])) {
+//      $remote_host = TRUE;
+//    }
 
     $pv = !empty($assoc_args['progress']);
 
     $commands = [];
-    $import_commands = [];
 
-//    if ($pv) {
-//      $commands[] = 'tmppipe=$(mktemp -u)';
-//      $commands[] = 'mkfifo -m 600 $tmppipe';
-//    }
-
+    $drush_alias_source = $this->escapeShellArg($this->getInlineDrushAlias($environment));
     $commands[] = "drush $drush_alias sql-drop -y 1>/dev/null";
 
-    $import_commands[] = $this->exportDBCommand($environment);
+    $dump_commands[] = $this->exportDBCommand($environment);
+    $dump_commands[] = 'gzip';
+
+    $dump_cmd = implode(' | ', $dump_commands);
+
+    $dump_php_cmd = $this->escapeShellArg('passthru(' . $this->escapeShellArg($dump_cmd) . ')');
+    $commands[] = "drush $drush_alias_source ev $dump_php_cmd";
 
     if ($pv) {
-      $import_commands[] = 'pv -cfN importing';
+      $commands[] = 'pv -cfN importing';
     }
 
-    $import_commands[] = $this->importDBDrushCommand($drush_alias);
+    $commands[] = 'gunzip';
+    $commands[] = $this->importDBDrushCommand($drush_alias);
 
-    $commands[] = implode(' | ', $import_commands);
-    $cmd = implode(' && ', $commands);
+    $cmd = implode(' | ', $commands);
 
     // Wrap the SSH Command in Drush SSH if need be.
-    if ($remote_host) {
-      $cmd = $this->escapeShellArg($cmd);
-      $cmd = "drush $drush_alias --tty ssh $cmd 2>&1";
-    }
+//    if ($remote_host) {
+//      $cmd = $this->escapeShellArg($cmd);
+//      $cmd = "drush $drush_alias --tty ssh $cmd 2>&1";
+//    }
 
     $this->log()->debug('Bootstraping Time: ' . round((microtime(TRUE) - $start_bootstrapping)* 1000, 2));
+    $this->log()->debug("Running Command: $cmd");
 
     $this->log()->info('Importing Database...');
 
     $start_piping = microtime(TRUE);
+
     passthru($cmd, $error_code);
 
     $this->log()->debug('Piping Time: ' . round((microtime(TRUE) - $start_piping)* 1000, 2));
@@ -140,17 +143,19 @@ class PipeCommand extends CommandWithSSH {
 
     // Nysqldump is stupid...
     $export_parameters = str_replace('--database=', '' , $this->getCommandLineDatabaseOptions($environment));
-    $export_parameters .= ' --hex-blob --routines --triggers';
     $export_parameters .= ' --compress --disable-keys --quick --quote-names';
     $export_parameters .= ' --add-drop-table --add-locks --create-options --no-autocommit --single-transaction';
     $export_parameters .= ' --skip-extended-insert --complete-insert --order-by-primary';
     $export_command .= ' ' . $export_parameters;
+
+    //@TODO: Add Structure Tables
+    //$exec = "( mysqldump --no-data $extra " . implode(' ', $structure_tables) . " && $exec; ) ";
+    
     return $export_command;
   }
 
   /**
    * Get Command Line Database Options
-   * @TODO: Unused
    */
   protected function getCommandLineDatabaseOptions(\Terminus\Models\Environment $environment) {
     $connection_info = $environment->connectionInfo();
