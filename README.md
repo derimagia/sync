@@ -1,10 +1,9 @@
-# Terminus Sync
+# Terminus Pipe
 
 Currently in Beta.
 
 Terminus Plugin for syncing a database from Pantheon to a drush alias.
 
-Adds a sub-command to 'site' which is called 'pancakes'. This opens a site in Sequel Pro
 
 ## Examples
 * `terminus site sync --site=companysite-33 --env=dev (--progress)`
