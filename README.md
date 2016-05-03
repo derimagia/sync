@@ -13,4 +13,4 @@ Terminus Plugin for syncing a database from Pantheon to a drush alias.
 For help installing, see [Terminus's Wiki](https://github.com/pantheon-systems/terminus/wiki/Plugins)
 
 ## Help
-Run `terminus help site sync` for help.
+Run `terminus help site pipe` for help.
